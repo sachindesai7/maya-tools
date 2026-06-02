@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "maya": {
+      "command": "python",
+      "args": ["mcp/maya_mcp_server.py"],
+      "cwd": "C:/Users/Sachin/maya-tools"
+    }
+  }
+}
