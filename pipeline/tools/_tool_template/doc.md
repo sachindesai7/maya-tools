@@ -2,7 +2,33 @@
 
 **Version:** 1.0.0  
 **Author:** Sachin  
-**Spec:** `specs/tool_name.md`
+**Spec:** `../../specs/tool_name.md`  
+**Location:** `pipeline/tools/tool_name/`
+
+---
+
+## Repository Structure
+
+```
+maya-tools/
+└── pipeline/                       ← All tools and standards
+    ├── STANDARDS.md               ← Development rules (read first!)
+    ├── CLAUDE.md                  ← Claude Code workflow
+    ├── README.md                  ← Quick reference
+    ├── mcp/                       ← Maya MCP infrastructure
+    │   ├── maya_mcp_server.py     ← Claude Code ↔ Maya bridge
+    │   ├── maya_start_port.py     ← Setup script
+    │   ├── requirements.txt
+    │   └── README.md
+    ├── specs/                     ← Tool specifications (one per tool)
+    │   └── tool_name.md           ← This tool's spec
+    └── tools/                     ← All pipeline tools
+        ├── tool_name/             ← This tool
+        │   ├── tool_name.py       ← Main code
+        │   ├── icon.png           ← Shelf icon (64x64 PNG)
+        │   └── doc.md             ← This file
+        └── _tool_template/        ← Copy this to create new tools
+```
 
 ---
 

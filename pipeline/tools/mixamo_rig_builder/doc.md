@@ -1,8 +1,33 @@
 # Mixamo Rig Builder
 
-**Version:** 1.0.0
-**Author:** Sachin
-**Spec:** `specs/mixamo_rig_builder.md`
+**Version:** 1.0.0  
+**Author:** Sachin  
+**Spec:** `../specs/mixamo_rig_builder.md`  
+**Location:** `pipeline/tools/mixamo_rig_builder/`
+
+---
+
+## Repository Structure
+
+```
+maya-tools/
+└── pipeline/                       ← All new tools and standards
+    ├── STANDARDS.md               ← Development rules (required reading)
+    ├── CLAUDE.md                  ← Claude Code workflow
+    ├── README.md                  ← Quick reference
+    ├── mcp/                       ← Maya MCP infrastructure
+    │   ├── maya_mcp_server.py     ← Claude Code ↔ Maya bridge
+    │   ├── maya_start_port.py     ← One-time setup
+    │   ├── requirements.txt        ← pip install mcp
+    │   └── README.md
+    ├── specs/                     ← Tool specifications
+    │   ├── _spec_template.md
+    │   └── mixamo_rig_builder.md  ← This tool's spec
+    └── tools/                     ← All pipeline tools
+        ├── maya_connector/        ← MCP port manager
+        ├── mixamo_rig_builder/    ← This tool
+        └── _tool_template/        ← Copy to create new tools
+```
 
 ---
 
