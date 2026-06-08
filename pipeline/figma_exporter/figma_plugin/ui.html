@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Inter, sans-serif; font-size: 13px; padding: 12px; background: #fff; }
+  h3   { font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #1a1a1a; }
+  #status  { padding: 6px 10px; border-radius: 4px; margin-bottom: 10px;
+             background: #f0f0f0; color: #555; font-size: 12px; }
+  #status.ok  { background: #e6f4ea; color: #1e7e34; }
+  #status.err { background: #fde8e8; color: #c0392b; }
+  #list { max-height: 120px; overflow-y: auto; margin-bottom: 10px;
+          border: 1px solid #e0e0e0; border-radius: 4px; padding: 4px; }
+  .item { padding: 2px 4px; border-radius: 3px; white-space: nowrap;
+          overflow: hidden; text-overflow: ellipsis; color: #333; font-size: 12px; }
+  .item:hover { background: #f5f5f5; }
+  .empty { color: #aaa; font-style: italic; padding: 4px; font-size: 12px; }
+  button { width: 100%; padding: 8px; border: none; border-radius: 6px;
+           background: #18a0fb; color: #fff; font-size: 13px; font-weight: 600;
+           cursor: pointer; }
+  button:hover   { background: #0d8de0; }
+  button:disabled { background: #ccc; cursor: default; }
+</style>
+</head>
+<body>
+<h3>Asset Exporter Sync</h3>
+<div id="status">Waiting for selection…</div>
+<div id="list"><div class="empty">Select images or frames in Figma</div></div>
+<button id="btn" disabled>Send Selection to Exporter</button>
+
+<script>
+  var nodes = [];
+
+  window.onmessage = function(event) {
+    var msg = event.data.pluginMessage;
+    if (!msg || msg.type !== 'selection') return;
+    nodes = msg.nodes;
+    var list = document.getElementById('list');
+    var status = document.getElementById('status');
+    var btn = document.getElementById('btn');
+
+    if (!nodes.length) {
+      list.innerHTML = '<div class="empty">Nothing selected</div>';
+      status.textContent = 'Select nodes in Figma';
+      status.className = '';
+      btn.disabled = true;
+    } else {
+      list.innerHTML = nodes.map(function(n) {
+        return '<div class="item">' + n.name + ' <span style="color:#aaa">(' + n.type + ')</span></div>';
+      }).join('');
+      status.textContent = nodes.length + ' node' + (nodes.length > 1 ? 's' : '') + ' selected';
+      status.className = '';
+      btn.disabled = false;
+    }
+  };
+
+  document.getElementById('btn').onclick = function() {
+    var btn = document.getElementById('btn');
+    var status = document.getElementById('status');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+
+    fetch('http://localhost:7788/selection', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nodes: nodes })
+    })
+    .then(function(r) {
+      if (r.ok) {
+        status.textContent = '✓ Sent! Check the Exporter app.';
+        status.className = 'ok';
+      } else {
+        throw new Error('Server error ' + r.status);
+      }
+    })
+    .catch(function(e) {
+      status.textContent = '✗ Could not reach Exporter app. Is it running?';
+      status.className = 'err';
+    })
+    .finally(function() {
+      btn.textContent = 'Send Selection to Exporter';
+      btn.disabled = false;
+    });
+  };
+</script>
+</body>
+</html>
