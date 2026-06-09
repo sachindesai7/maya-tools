@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Inter, sans-serif; font-size: 13px; padding: 12px; background: #fff; color: #1a1a1a; }
+  h3   { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+
+  /* Server status bar */
+  #server-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+                padding: 5px 8px; border-radius: 4px; background: #f5f5f5; }
+  #server-dot { font-size: 13px; line-height: 1; }
+  #server-lbl { font-size: 11px; flex: 1; color: #555; }
+  #ping-btn   { font-size: 10px; padding: 2px 7px; border: 1px solid #ccc; border-radius: 4px;
+                background: #fff; cursor: pointer; }
+  #ping-btn:hover { background: #eee; }
+
+  /* How-to hint shown when server is offline */
+  #server-help { font-size: 11px; color: #a33; margin-bottom: 8px; line-height: 1.6;
+                 background: #fde8e8; padding: 7px 9px; border-radius: 4px; display: none; }
+  #server-help code { background: #f5c6c6; padding: 1px 5px; border-radius: 3px;
+                      font-family: monospace; font-size: 10.5px; }
+
+  /* Path input */
+  #path-row { margin-bottom: 8px; }
+  #path-row label { font-size: 11px; color: #555; display: block; margin-bottom: 3px; }
+  #path-input { width: 100%; padding: 5px 8px; border: 1.5px solid #ccc; border-radius: 5px;
+                font-size: 11px; font-family: monospace; }
+  #path-input:focus { outline: none; border-color: #18a0fb; }
+
+  #scope-row { font-size: 11px; color: #555; display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+
+  #status { padding: 6px 10px; border-radius: 4px; margin-bottom: 8px;
+            background: #f0f0f0; color: #555; font-size: 12px; min-height: 28px; line-height: 1.4; }
+  #status.ok   { background: #e6f4ea; color: #1e7e34; }
+  #status.err  { background: #fde8e8; color: #c0392b; }
+  #status.warn { background: #fff8e1; color: #856404; }
+
+  #debug-box  { display: none; }   /* hidden — was temp debug, no longer needed */
+  #skip-box   { font-size: 11px; color: #856404; margin-bottom: 8px;
+                background: #fff8e1; border: 1px solid #ffe58f; border-radius: 4px;
+                padding: 6px 8px; display: none; line-height: 1.6; }
+  #preview-list { font-size: 11px; color: #777; margin-bottom: 8px; max-height: 72px;
+                  overflow-y: auto; border: 1px solid #eee; border-radius: 4px; padding: 4px 6px; }
+  .pl-item { padding: 1px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  #progress-wrap { display: none; margin-bottom: 8px; }
+  #progress-bar  { width: 100%; height: 8px; border-radius: 4px; background: #e0e0e0; overflow: hidden; }
+  #progress-fill { height: 100%; width: 0%; background: #1bc47d; transition: width 0.15s; border-radius: 4px; }
+  #progress-lbl  { font-size: 11px; color: #666; margin-top: 3px; text-align: center; }
+
+  #export-btn { width: 100%; padding: 10px; border: none; border-radius: 6px;
+                background: #18a0fb; color: #fff; font-size: 13px; font-weight: 700;
+                cursor: pointer; margin-bottom: 4px; }
+  #export-btn:hover    { background: #0d8de0; }
+  #export-btn:disabled { background: #ccc; cursor: default; }
+  #export-btn.ready    { background: #1bc47d; }
+  #export-btn.ready:hover { background: #17a86c; }
+
+  .note { font-size: 10px; color: #aaa; text-align: center; }
+</style>
+</head>
+<body>
+<h3>Asset Exporter</h3>
+
+<!-- Server status -->
+<div id="server-row">
+  <span id="server-dot">⚪</span>
+  <span id="server-lbl">Checking server…</span>
+  <button id="ping-btn">↻ Refresh</button>
+</div>
+<div id="server-help">
+  Run this in a terminal first, then click ↻ Refresh:<br>
+  <code>python save_server.py</code><br>
+  (keep that terminal open while exporting)
+</div>
+
+<!-- Output path -->
+<div id="path-row">
+  <label for="path-input">Output folder path:</label>
+  <input id="path-input" type="text" placeholder="C:\Users\Sachin\Exports" spellcheck="false">
+</div>
+
+<!-- Scope -->
+<div id="scope-row">
+  <input type="checkbox" id="chk-sel" checked>
+  <label for="chk-sel">Selected nodes only (uncheck = full page)</label>
+</div>
+
+<!-- Status -->
+<div id="status">Start server, enter a path, select a section, then Export.</div>
+
+<!-- Skipped items (shown after export) -->
+<div id="skip-box"></div>
+
+<!-- Preview list -->
+<div id="preview-list" style="display:none"></div>
+
+<!-- Progress -->
+<div id="progress-wrap">
+  <div id="progress-bar"><div id="progress-fill"></div></div>
+  <div id="progress-lbl">0 / 0</div>
+</div>
+
+<!-- Export button -->
+<button id="export-btn" disabled>⬇ Export to Folder</button>
+<p class="note">Saves to: Output Path / Section / Subsection / image.png</p>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+var serverOk   = false;
+var exporting  = false;
+var saveQueue  = Promise.resolve();
+var SERVER     = 'http://localhost:7788';
+var skippedLog = [];   // collects {name, reason} for post-export display
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function setStatus(text, cls) {
+  var el = document.getElementById('status');
+  el.textContent = text;
+  el.className = cls || '';
+}
+
+function setProgress(done, total) {
+  var wrap = document.getElementById('progress-wrap');
+  var fill = document.getElementById('progress-fill');
+  var lbl  = document.getElementById('progress-lbl');
+  wrap.style.display = total > 0 ? 'block' : 'none';
+  fill.style.width   = total > 0 ? Math.round(done / total * 100) + '%' : '0%';
+  lbl.textContent    = done + ' / ' + total;
+}
+
+function getPath() {
+  return document.getElementById('path-input').value.trim();
+}
+
+function safeName(s) {
+  return (s || 'unnamed').replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').trim() || 'unnamed';
+}
+
+function checkReady() {
+  var btn = document.getElementById('export-btn');
+  if (serverOk && getPath() && !exporting) {
+    btn.disabled = false;
+    btn.className = 'ready';
+    btn.textContent = '⬇ Export to Folder';
+  } else {
+    btn.disabled = true;
+    btn.className = '';
+    if (!serverOk) btn.textContent = 'Server not running';
+    else if (!getPath()) btn.textContent = 'Enter output path';
+    else btn.textContent = 'Exporting…';
+  }
+}
+
+function updateServerStatus(ok) {
+  serverOk = ok;
+  var dot  = document.getElementById('server-dot');
+  var lbl  = document.getElementById('server-lbl');
+  var help = document.getElementById('server-help');
+  if (ok) {
+    dot.textContent  = '🟢';
+    lbl.textContent  = 'Server running on port 7788';
+    help.style.display = 'none';
+  } else {
+    dot.textContent  = '🔴';
+    lbl.textContent  = 'Server not running';
+    help.style.display = 'block';
+  }
+  checkReady();
+}
+
+function pingServer() {
+  document.getElementById('server-lbl').textContent = 'Checking…';
+  fetch(SERVER + '/ping', { cache: 'no-store' })
+    .then(function(r) { updateServerStatus(r.ok); })
+    .catch(function()  { updateServerStatus(false); });
+}
+
+// Detect file extension from magic bytes
+function detectExt(bytes, assetType) {
+  if (bytes[0]===0x89&&bytes[1]===0x50&&bytes[2]===0x4E&&bytes[3]===0x47) return 'png';
+  if (bytes[0]===0xFF&&bytes[1]===0xD8&&bytes[2]===0xFF)                   return 'jpg';
+  if (bytes[0]===0x47&&bytes[1]===0x49&&bytes[2]===0x46)                   return 'gif';
+  if (bytes[0]===0x52&&bytes[1]===0x49&&bytes[2]===0x46&&
+      bytes[8]===0x57&&bytes[9]===0x45)                                     return 'webp';
+  if (bytes[4]===0x66&&bytes[5]===0x74&&bytes[6]===0x79&&bytes[7]===0x70)  return 'mp4';
+  if (bytes[0]===0x1A&&bytes[1]===0x45&&bytes[2]===0xDF&&bytes[3]===0xA3)  return 'webm';
+  return assetType === 'video' ? 'mp4' : 'png';
+}
+
+// bytes → base64 (handles large arrays without stack overflow)
+function bytesToBase64(bytes) {
+  var binary = '';
+  var CHUNK  = 8192;
+  for (var i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
+
+// POST one file to the save server
+function saveAsset(basePath, pathParts, filename, bytes) {
+  return fetch(SERVER + '/save', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      basePath:  basePath,
+      pathParts: pathParts,
+      filename:  filename,
+      data:      bytesToBase64(bytes)
+    })
+  }).then(function(r) {
+    if (!r.ok) throw new Error('Server returned ' + r.status);
+    return r.json();
+  });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+pingServer();
+
+// ── Event listeners ───────────────────────────────────────────────────────────
+document.getElementById('ping-btn').onclick = pingServer;
+
+document.getElementById('path-input').addEventListener('input', function() {
+  checkReady();
+  if (serverOk && getPath()) {
+    parent.postMessage({ pluginMessage: {
+      type: 'preview', useSelection: document.getElementById('chk-sel').checked
+    }}, '*');
+  }
+});
+
+document.getElementById('chk-sel').onchange = function() {
+  if (serverOk && getPath()) {
+    parent.postMessage({ pluginMessage: {
+      type: 'preview', useSelection: this.checked
+    }}, '*');
+  }
+};
+
+// ── Export ────────────────────────────────────────────────────────────────────
+document.getElementById('export-btn').onclick = function() {
+  if (exporting || !serverOk || !getPath()) return;
+  exporting = true;
+  saveQueue  = Promise.resolve();
+  skippedLog = [];
+  document.getElementById('skip-box').style.display = 'none';
+  checkReady();
+  setStatus('Reading assets from Figma…');
+  setProgress(0, 0);
+  parent.postMessage({ pluginMessage: {
+    type:         'start-export',
+    useSelection: document.getElementById('chk-sel').checked
+  }}, '*');
+};
+
+// ── Plugin messages ───────────────────────────────────────────────────────────
+window.onmessage = function(event) {
+  var msg = event.data.pluginMessage;
+  if (!msg) return;
+
+  // Selection changed — refresh preview
+  if (msg.type === 'selection') {
+    if (serverOk && getPath() && msg.count > 0) {
+      parent.postMessage({ pluginMessage: {
+        type: 'preview', useSelection: document.getElementById('chk-sel').checked
+      }}, '*');
+    }
+    return;
+  }
+
+  // Preview result
+  if (msg.type === 'preview-result') {
+    var pl = document.getElementById('preview-list');
+    if (msg.count === 0) {
+      pl.style.display = 'none';
+      setStatus('No image/video assets found in current selection.', 'warn');
+    } else {
+      pl.style.display = 'block';
+      pl.innerHTML =
+        '<div class="pl-item" style="color:#333;font-weight:600">' + msg.count + ' asset(s) found:</div>' +
+        msg.paths.slice(0, 8).map(function(p) {
+          return '<div class="pl-item">📄 ' + p + '</div>';
+        }).join('') +
+        (msg.count > 8 ? '<div class="pl-item" style="color:#aaa">… and ' + (msg.count - 8) + ' more</div>' : '');
+      setStatus('Ready — ' + msg.count + ' asset(s) → ' + getPath());
+      checkReady();
+    }
+    return;
+  }
+
+  // Export started
+  if (msg.type === 'export-start') {
+    setProgress(0, msg.total);
+    return;
+  }
+
+  // Plugin is fetching bytes for this asset — show which one
+  if (msg.type === 'export-fetching') {
+    setStatus('Fetching: ' + msg.name + ' (' + (msg.index + 1) + '/' + msg.total + ')…');
+    return;
+  }
+
+  // Receive one asset — queue it for saving
+  if (msg.type === 'export-asset') {
+    var bytes     = new Uint8Array(msg.bytes);
+    var ext       = msg.isPlaceholder ? 'txt' : detectExt(bytes, msg.assetType);
+    var filename  = safeName(msg.name) + '.' + ext;
+    var pathParts     = msg.pathParts || ['Unsorted'];
+    var index         = msg.index;
+    var total         = msg.total;
+    var name          = msg.name;
+    var isPlaceholder = !!msg.isPlaceholder;
+    var basePath      = getPath();
+
+    saveQueue = saveQueue.then(function() {
+      return saveAsset(basePath, pathParts, filename, bytes)
+        .then(function() {
+          setProgress(index + 1, total);
+          if (isPlaceholder) {
+            setStatus('📁 Folder created: ' + pathParts.join('/') + '  (place video here manually)');
+          } else {
+            setStatus('Saved: ' + pathParts.join('/') + '/' + name);
+          }
+        })
+        .catch(function(e) {
+          setStatus('Error saving "' + name + '": ' + e.message, 'err');
+        });
+    });
+    return;
+  }
+
+  // Skipped asset
+  if (msg.type === 'export-skip') {
+    setProgress(msg.index + 1, msg.total);
+    skippedLog.push({ name: msg.name, reason: msg.reason || 'unknown', isMedia: !!msg.isMedia });
+    return;
+  }
+
+  // All assets sent — wait for queue then show result
+  if (msg.type === 'export-done') {
+    saveQueue.then(function() {
+      exporting = false;
+      checkReady();
+      var total   = msg.total;
+      var skipped = msg.skipped || 0;
+      var saved   = total - skipped;
+      if (total === 0) {
+        setStatus('No assets found.', 'warn');
+        setProgress(0, 0);
+      } else {
+        setProgress(total, total);
+        setStatus(
+          '✅ Finished! ' + saved + ' file(s) saved to "' + getPath() + '"' +
+          (skipped ? '  (' + skipped + ' skipped)' : '') + '.',
+          'ok'
+        );
+        // Show skipped items list
+        var sb = document.getElementById('skip-box');
+        if (skippedLog.length > 0) {
+          sb.style.display = 'block';
+          sb.innerHTML = '⚠️ Skipped (' + skippedLog.length + '):<br>' +
+            skippedLog.map(function(s) {
+              return '• <b>' + s.name + '</b>' +
+                (s.isMedia ? '<br>&nbsp;&nbsp;↳ FigJam video — plugin API cannot access video bytes.<br>&nbsp;&nbsp;↳ To export: right-click video in Figma → <b>Download</b>' : '<br>&nbsp;&nbsp;↳ ' + s.reason);
+            }).join('<br>');
+        } else {
+          sb.style.display = 'none';
+        }
+      }
+    });
+    return;
+  }
+};
+</script>
+</body>
+</html>
