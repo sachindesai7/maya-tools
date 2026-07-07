@@ -1,0 +1,16 @@
+{
+  "rules": [
+    { "field": "firstName", "patterns": ["first\\s*name", "given\\s*name", "\\bfname\\b", "forename"] },
+    { "field": "lastName", "patterns": ["last\\s*name", "family\\s*name", "surname", "\\blname\\b"] },
+    { "field": "fullName", "patterns": ["full\\s*name", "^\\s*name\\s*[:*]?\\s*$", "your\\s*name", "legal\\s*name", "candidate\\s*name"] },
+    { "field": "email", "patterns": ["e-?mail"], "typeHint": "email" },
+    { "field": "phone", "patterns": ["phone", "mobile", "contact\\s*(number|no)", "telephone", "whatsapp"], "typeHint": "tel" },
+    { "field": "linkedin", "patterns": ["linked\\s*-?in"] },
+    { "field": "portfolio", "patterns": ["portfolio", "personal\\s*(web\\s*)?site", "\\bwebsite\\b", "\\burl\\b", "github", "artstation", "demo\\s*reel", "show\\s*reel"] },
+    { "field": "location", "patterns": ["current\\s*location", "\\blocation\\b", "\\bcity\\b", "\\bcountry\\b", "where\\s*(are\\s*you|do\\s*you)\\s*(based|live)"] },
+    { "field": "pronouns", "patterns": ["pronoun"] },
+    { "field": "gender", "patterns": ["gender", "\\bsex\\b", "gender\\s*identity"] },
+    { "field": "resume", "patterns": ["resume", "\\bcv\\b", "curriculum"], "inputType": "file" },
+    { "field": "coverLetter", "patterns": ["cover\\s*letter", "covering\\s*letter", "motivation\\s*letter"], "inputType": "file" }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Job Profile Autofill",
+  "description": "Store your job profile once, autofill application forms on any portal.",
+  "version": "1.0.0",
+  "permissions": ["storage", "activeTab", "scripting", "unlimitedStorage"],
+  "host_permissions": [
+    "https://drive.google.com/*",
+    "https://drive.usercontent.google.com/*"
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Job Profile Autofill"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}

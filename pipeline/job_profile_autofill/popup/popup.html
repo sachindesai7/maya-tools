@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header>
+    <h1>Job Profile Autofill</h1>
+    <button id="fillBtn" class="primary">⚡ Fill this page</button>
+  </header>
+
+  <div id="fillReport" class="report hidden"></div>
+
+  <section>
+    <h2>Profile</h2>
+    <div class="grid">
+      <label>First name <input id="firstName" type="text" /></label>
+      <label>Last name <input id="lastName" type="text" /></label>
+      <label class="full">Full name (as on forms) <input id="fullName" type="text" /></label>
+      <label>Email <input id="email" type="email" /></label>
+      <label>Phone <input id="phone" type="tel" /></label>
+      <label>Location <input id="location" type="text" /></label>
+      <label>Pronouns
+        <select id="pronouns">
+          <option value="">— none —</option>
+          <option value="He/Him">He/Him</option>
+          <option value="She/Her">She/Her</option>
+          <option value="They/Them">They/Them</option>
+          <option value="Prefer not to say">Prefer not to say</option>
+        </select>
+      </label>
+      <label>Gender
+        <select id="gender">
+          <option value="">— none —</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <option value="Non-binary">Non-binary</option>
+          <option value="Prefer not to say">Prefer not to say</option>
+        </select>
+      </label>
+      <label class="full">LinkedIn URL <input id="linkedin" type="url" /></label>
+      <label class="full">Portfolio / Website URL <input id="portfolio" type="url" /></label>
+    </div>
+  </section>
+
+  <section>
+    <h2>Documents</h2>
+
+    <div class="doc" data-doc="resume">
+      <h3>Resume</h3>
+      <div class="doc-status" id="resumeStatus">No file stored</div>
+      <div class="doc-inputs">
+        <input type="file" id="resumeFile" accept=".pdf,.doc,.docx" />
+        <div class="drive-row">
+          <input type="url" id="resumeDriveUrl" placeholder="or paste Google Drive share link" />
+          <button id="resumeDriveFetch">Fetch</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="doc" data-doc="coverLetter">
+      <h3>Cover letter</h3>
+      <div class="doc-status" id="coverLetterStatus">No file stored</div>
+      <div class="doc-inputs">
+        <input type="file" id="coverLetterFile" accept=".pdf,.doc,.docx" />
+        <div class="drive-row">
+          <input type="url" id="coverLetterDriveUrl" placeholder="or paste Google Drive share link" />
+          <button id="coverLetterDriveFetch">Fetch</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Custom Questions &amp; Answers</h2>
+    <div id="qaList"></div>
+    <button id="addQA">+ Add question</button>
+  </section>
+
+  <footer>
+    <button id="saveBtn" class="primary">💾 Save</button>
+    <span id="saveStatus"></span>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>

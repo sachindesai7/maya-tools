@@ -33,6 +33,7 @@ pipeline/
 - **Maya MCP Setup:** `mcp/README.md`
 - **Tool Development:** `CLAUDE.md`
 - **Coding Rules:** `STANDARDS.md`
+- **Job Profile Autofill (Chrome extension):** `job_profile_autofill/README.md`
 
 ---
 

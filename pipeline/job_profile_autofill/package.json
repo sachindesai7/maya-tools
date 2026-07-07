@@ -1,0 +1,14 @@
+{
+  "name": "job-profile-autofill",
+  "version": "1.0.0",
+  "description": "Chrome extension: store your job profile once, autofill application forms on any portal.",
+  "private": true,
+  "scripts": {
+    "test": "node test/lever.test.js"
+  },
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "jsdom": "^29.1.1"
+  }
+}
